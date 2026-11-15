@@ -1,5 +1,7 @@
 # BehaviorBench Arena — website
 
+**[Open the website](https://xuchenhong0512.github.io/behaviorbench-arena-site/)**
+
 Public, read-only results explorer for Beauty Contest, Ultimatum, Trust, Public Goods and Push/Pull. This repository contains only the website and approved display data.
 
 ## Results
