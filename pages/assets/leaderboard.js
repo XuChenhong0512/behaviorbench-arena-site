@@ -1,19 +1,35 @@
+import { overallRows } from "./overall.js";
 import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
 
 export function renderLeaderboard(summary, current, state) {
   const wrapper = element("section");
   append(wrapper, heading("Economic Game Leaderboard", "Compare models by total returns across repeated economic games."), gameControls(summary, current, state));
+  const isOverall = current.id === "overall";
   const toolbar = element("div", "toolbar"); const methods = element("div", "method-control"); methods.setAttribute("role", "group"); methods.setAttribute("aria-label", "Ranking method");
   for (const method of ["bt", "elo"]) {
     const node = button(method === "bt" ? "BT" : "Elo", () => setURL({ method })); node.setAttribute("aria-pressed", String(state.method === method)); methods.append(node);
   }
   const search = element("input"); search.type = "search"; search.placeholder = "Search models or providers…"; search.value = runtime.searchTerm;
-  append(toolbar, roundField(summary, current), field("Ranking method", methods), field("Find a model", search, "search-field"));
-  append(wrapper, toolbar, metadata(current, summary));
+  append(toolbar, isOverall ? null : roundField(summary, current), field("Ranking method", methods), field("Find a model", search, "search-field"));
+  append(wrapper, toolbar, isOverall ? paragraph("Overall · Five games · Equal game weights", "context-line") : metadata(current, summary));
   if (current.status === "provisional") wrapper.append(note(current.ranking_note || "Provisional point estimates. A role-balanced match block is incomplete, so statistical intervals are unavailable."));
   const rankingHost = element("div"); const context = element("p", "caption");
   const drawTable = () => {
     rankingHost.replaceChildren();
+    if (isOverall) {
+      const rows = overallRows(current, state.method);
+      const filtered = rows.filter(item => `${nameOf(summary, item.model_id)} ${model(summary, item.model_id).provider}`.toLowerCase().includes(runtime.searchTerm.toLowerCase()));
+      if (!filtered.length) { rankingHost.append(element("div", "empty-state", "No saved models match this search.")); return; }
+      const cells = filtered.map(item => [
+        element("span", "rank", Number.isFinite(item[state.method]) ? rows.indexOf(item) + 1 : "—"),
+        modelCell(summary, item.model_id), element("span", "score", formatNumber(item[state.method])),
+        ...current.constituent_games.map(game => element("span", "numeric", formatNumber(item.game_scores[game.id][state.method])))
+      ]);
+      const headers = ["RANK", "MODEL", `AVG. ${state.method.toUpperCase()} ↓`, ...current.constituent_games.map(game => game.name)];
+      const node = table(headers, cells, "ranking-table overall-ranking-table");
+      node.querySelector("table").setAttribute("aria-label", `Overall ${state.method.toUpperCase()} rankings`); rankingHost.append(node);
+      return;
+    }
     const rows = [...current.rows].filter(item => typeof item[state.method] === "number").sort((a, b) => b[state.method] - a[state.method]);
     const filtered = rows.filter(item => `${nameOf(summary, item.model_id)} ${model(summary, item.model_id).provider}`.toLowerCase().includes(runtime.searchTerm.toLowerCase()));
     if (!filtered.length) { rankingHost.append(element("div", "empty-state", "No saved models match this search.")); return; }
@@ -29,6 +45,13 @@ export function renderLeaderboard(summary, current, state) {
     node.querySelector("table").setAttribute("aria-label", `${current.name} ${state.method.toUpperCase()} rankings`); rankingHost.append(node);
   };
   search.addEventListener("input", () => { runtime.searchTerm = search.value; drawTable(); }); drawTable();
+  if (isOverall) {
+    context.textContent = "Arithmetic mean of the five saved game ratings, with each game weighted 20%. Includes provisional Ultimatum ratings. Descriptive summary; no overall confidence interval is estimated.";
+    append(wrapper, rankingHost, context, details("How this average is calculated",
+      paragraph("Average rating = (Beauty Contest + Ultimatum + Trust + Public Goods + Push/Pull) / 5. BT and Elo are calculated separately from unrounded saved scores, not from earnings, ranks or match counts. A missing game score leaves the overall score unavailable.", "caption"),
+      paragraph("This equal-weight index is not a new pooled BT fit. Compare the individual games and their uncertainty before interpreting small differences. Historical experiments with different round conditions are kept separate.", "caption")));
+    return wrapper;
+  }
   context.textContent = state.method === "bt" ? (current.status === "historical" ? "Higher is better. Saved regularized BT ratings; intervals were not estimated for this historical experiment." : "Higher is better. Saved IPW block-normalized BT ratings. Intervals, when available, are 95% joint asymptotic intervals.") : "Higher is better. Chronological Elo is supplementary and is not corrected for sampling probabilities.";
   append(wrapper, rankingHost, context);
   const detail = details("Behavior & returns");

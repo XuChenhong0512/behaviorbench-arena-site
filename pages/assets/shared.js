@@ -1,3 +1,4 @@
+import { overallCondition } from "./overall.js";
 /* Saved-results browser. This module never calls an inference endpoint. */
 const PAGES = new Set(["leaderboard", "replay", "settings"]);
 const DATA_ROOT = new URL("../data/", import.meta.url);
@@ -111,6 +112,10 @@ export function setURL(change, { replace = false, render = true } = {}) {
 }
 export function gameControls(summary, current, state) {
   const wrapper = element("div"); const tabs = element("div", "game-tabs"); tabs.setAttribute("aria-label", "Game");
+  if (state.page === "leaderboard" && overallCondition(summary)) {
+    const overall = button("Overall", () => setURL({ game: "overall", rounds: 6, match: null, round: "all" }));
+    overall.setAttribute("aria-pressed", String(current.id === "overall")); tabs.append(overall);
+  }
   const seen = new Set();
   for (const game of summary.games) {
     if (seen.has(game.id)) continue; seen.add(game.id);

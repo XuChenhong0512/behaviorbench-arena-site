@@ -1,3 +1,4 @@
+import { overallCondition } from "./overall.js";
 import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
 
 import { renderLeaderboard } from "./leaderboard.js";
@@ -16,7 +17,8 @@ async function route() {
     const dataset = runtime.manifest.datasets.find(item => item.id === state.dataset) || runtime.manifest.datasets.find(item => item.id === runtime.manifest.default_dataset) || runtime.manifest.datasets[0];
     if (!dataset) throw new Error("No saved result dataset is available."); state.dataset = dataset.id;
     const summary = await readJSON(dataset.path); if (version !== runtime.routeVersion) return;
-    const current = getCondition(summary, state.game, state.rounds);
+    const overall = state.page === "leaderboard" && (!state.game || state.game === "overall") ? overallCondition(summary) : null;
+    const current = overall || getCondition(summary, state.game, state.rounds);
     if (!current || !summary.models?.length) throw new Error("The saved result summary has no game or model records.");
     state.game = current.id; state.rounds = current.rounds;
     const sidebarCaption = document.querySelector(".sidebar-caption");

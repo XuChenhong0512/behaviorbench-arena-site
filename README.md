@@ -6,7 +6,7 @@ Public, read-only results explorer for Beauty Contest, Ultimatum, Trust, Public 
 
 ## Results
 
-The default six-model formal experiment has 839 valid matches out of 840 planned matches. Two historical experiments remain separately selectable in Game Settings. Rankings use saved BT/Elo scores; Ultimatum v7 is provisional without an interval.
+The default six-model formal experiment has 839 valid matches out of 840 planned matches. The Overall leaderboard shows the equally weighted arithmetic mean of the five saved game ratings, with BT and Elo calculated separately; it includes provisional Ultimatum scores and has no overall confidence interval. Two historical experiments remain separately selectable in Game Settings. Rankings use saved BT/Elo scores; Ultimatum v7 is provisional without an interval.
 
 Battle Replay preserves actual model responses, exact prompts, public outcomes and failed attempts. No inference is performed. Credentials, accounts, private permits, private billing records, original SQLite databases and research implementation are excluded.
 
