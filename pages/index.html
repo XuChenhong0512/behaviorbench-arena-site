@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore real model returns, game settings, and round-by-round decisions across five economic games.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
+  <meta name="color-scheme" content="dark light">
+  <title>BehaviorBench Arena</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script type="module" src="./assets/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <aside class="sidebar" aria-label="Main navigation">
+    <a class="brand" href="?page=leaderboard" aria-label="BehaviorBench Arena home">
+      <span class="brand-mark" aria-hidden="true">◈</span>
+      <span class="brand-type">BehaviorBench<br>Arena<small>ECONOMIC GAME LAB</small></span>
+    </a>
+    <nav class="navigation" aria-label="Explore results">
+      <a href="?page=leaderboard" data-page="leaderboard"><span aria-hidden="true">▥</span>Leaderboard</a>
+      <a href="?page=replay" data-page="replay"><span aria-hidden="true">↔</span>Battle Replay</a>
+      <a href="?page=settings" data-page="settings"><span aria-hidden="true">≡</span>Game Settings</a>
+    </nav>
+    <div class="sidebar-caption">Five games · Six models<br><span>Saved experimental results</span></div>
+  </aside>
+  <div class="page-shell">
+    <main id="main" tabindex="-1">
+      <div class="loading-state" role="status">Loading saved results…</div>
+    </main>
+    <footer class="footer"><span>BehaviorBench Arena · Independent research reproduction</span><span>Read-only results · No model calls</span></footer>
+  </div>
+  <noscript><div class="noscript">JavaScript is needed to browse these saved results. No model calls are made by this website.</div></noscript>
+</body>
+</html>
