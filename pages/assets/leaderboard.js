@@ -46,13 +46,19 @@ export function renderLeaderboard(summary, current, state) {
   };
   search.addEventListener("input", () => { runtime.searchTerm = search.value; drawTable(); }); drawTable();
   if (isOverall) {
-    context.textContent = "Arithmetic mean of the five saved game ratings, with each game weighted 20%. Includes provisional Ultimatum ratings. Descriptive summary; no overall confidence interval is estimated.";
+    const ultimatumNote = current.includes_provisional ? " Includes provisional Ultimatum ratings." :
+      current.includes_ultimatum_rerun ? " Includes updated Ultimatum ratings from the supplemental rerun." : "";
+    context.textContent = `Arithmetic mean of the five saved game ratings, with each game weighted 20%.${ultimatumNote} No overall confidence interval is estimated.`;
     append(wrapper, rankingHost, context, details("How this average is calculated",
       paragraph("Average rating = (Beauty Contest + Ultimatum + Trust + Public Goods + Push/Pull) / 5. BT and Elo are calculated separately from unrounded saved scores, not from earnings, ranks or match counts. A missing game score leaves the overall score unavailable.", "caption"),
       paragraph("This equal-weight index is not a new pooled BT fit. Compare the individual games and their uncertainty before interpreting small differences. Historical experiments with different round conditions are kept separate.", "caption")));
     return wrapper;
   }
   context.textContent = state.method === "bt" ? (current.status === "historical" ? "Higher is better. Saved regularized BT ratings; intervals were not estimated for this historical experiment." : "Higher is better. Saved IPW block-normalized BT ratings. Intervals, when available, are 95% joint asymptotic intervals.") : "Higher is better. Chronological Elo is supplementary and is not corrected for sampling probabilities.";
+  if (current.status === "supplemental") {
+    context.textContent = state.method === "bt" ? "Higher is better. IPW BT ratings include the supplemental rerun. No interval is estimated for this analysis." :
+      "Higher is better. Elo uses the original schedule order with the supplemental rerun in its assigned slot.";
+  }
   append(wrapper, rankingHost, context);
   const about = details("About this ranking", paragraph(current.ranking_note || "Each match is ranked by total return across all rounds. Ties are retained. No results from different games or protocols are pooled.", "caption"));
   if (summary.notes) append(about, paragraph(Array.isArray(summary.notes) ? summary.notes.join(" ") : pretty(summary.notes), "caption"));

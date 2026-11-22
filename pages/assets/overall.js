@@ -21,7 +21,8 @@ export function overallCondition(summary) {
     return result;
   });
   return { id: "overall", name: "Overall", rounds: 6, status: "descriptive", rows,
-    constituent_games: conditions, includes_provisional: conditions.some(game => game.status === "provisional") };
+    constituent_games: conditions, includes_provisional: conditions.some(game => game.status === "provisional"),
+    includes_ultimatum_rerun: conditions.some(game => game.id === "ultimatum" && game.status === "supplemental") };
 }
 
 export function overallRows(condition, method) {

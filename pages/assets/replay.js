@@ -70,7 +70,7 @@ export async function renderReplay(summary, current, state, version) {
   wrapper.append(filters);
   if (!selected) { wrapper.append(element("div", "empty-state", "No saved match contains this pair under these filters. Try another pair or match status.")); return wrapper; }
   setURL({ left, right, match: selected.id }, { replace: true, render: false });
-  const matchOptions = candidates.map((item, index) => ({ value: item.id, label: `Match ${index + 1} · ${item.status} · ${item.settled_rounds}/${item.rounds} rounds settled` }));
+  const matchOptions = candidates.map((item, index) => ({ value: item.id, label: `Match ${index + 1} · ${item.replaces_match_id ? "supplemental rerun" : item.status} · ${item.settled_rounds}/${item.rounds} rounds settled` }));
   const chooser = select(matchOptions, selected.id, match => setURL({ match, round: "all" }), "Saved match");
   append(wrapper, append(element("div", "replay-header"), field(`Saved match · ${candidates.length} available for this pair`, chooser, "match-selector"), element("span", "badge", `${current.name} · ${current.rounds} rounds`)));
   wrapper.append(paragraph("Explanations are recorded reasons, not messages sent to each other. Public results were shared after completed rounds.", "caption"));
@@ -80,7 +80,9 @@ export async function renderReplay(summary, current, state, version) {
   if (match.players.length === 3) wrapper.append(note("This is a three-player game. The third participant is included below and affects the recorded outcome.", "info"));
   if (match.status !== "completed") wrapper.append(note(`Invalid match · excluded from rankings. ${match.failure_reason || "Partial evidence is retained without a final result."}`));
   wrapper.append(playerCards(summary, match, leftPlayer, rightPlayer));
-  append(wrapper, details("Match details", paragraph(match.id, "caption"), paragraph(`Status: ${match.status}. ${current.ranking_note || ""}`, "caption")));
+  const matchDetails = details("Match details", paragraph(match.id, "caption"), paragraph(`Status: ${match.status}. ${current.ranking_note || ""}`, "caption"));
+  if (match.replaces_match_id) matchDetails.append(paragraph(`Supplemental rerun of ${match.replaces_match_id}.`, "caption"));
+  append(wrapper, matchDetails);
   const nav = element("div", "round-nav"); nav.setAttribute("aria-label", "View rounds");
   const validRound = state.round === "all" || match.rounds.some(item => String(item.number) === state.round) ? state.round : "all";
   for (const value of ["all", ...match.rounds.map(item => String(item.number))]) {

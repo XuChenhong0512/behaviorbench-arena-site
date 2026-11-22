@@ -16,6 +16,15 @@ export async function renderSettings(summary, current, state, version) {
   const scope = element("section", "setting-section");
   append(scope, element("h2", "", "Experiment scope"), definitions([["Players per match", current.players], ["Rounds per match", current.rounds], ["Planned matches", current.planned_matches], ["Valid matches", current.valid_matches], ["Invalid matches", current.invalid_matches], ["Ranked matches", current.ranking_matches], [current.status === "historical" ? "Recorded groups" : "Complete ranking blocks", current.ranking_blocks]]));
   if (current.ranking_note) scope.append(paragraph(current.ranking_note, "caption"));
+  const rerun = current.ultimatum_rerun;
+  if (rerun?.archived_match_path === "v7/matches/v7-ultimatum-r6-m0236.json") {
+    const archive = element("a", "", "Archived original match record (JSON)");
+    archive.href = `./data/${rerun.archived_match_path}`;
+    scope.append(details("Supplemental Ultimatum rerun", definitions([
+      ["Replacement match", rerun.replacement_match_id], ["Original paired match", rerun.paired_match_id],
+      ["Completed", rerun.completed_at], ["Rerun requests", rerun.request_count],
+    ]), archive));
+  }
   append(grid, rules, scope);
   const generation = element("section", "setting-section");
   append(generation, element("h2", "", "Model settings"), paragraph(summary.settings.generation_policy === "provider_defaults" ? "Provider defaults. Sampling, reasoning, and output length were not overridden." : pretty(summary.settings.generation_policy)));
