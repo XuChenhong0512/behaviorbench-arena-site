@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse
 from collections import Counter
+from datetime import datetime
 from hashlib import sha256
 import json
 import math
@@ -37,6 +38,82 @@ def local_path(root,relative):
     return path
 
 
+def verify_ultimatum_rerun(data, summary, indexed):
+    """Require one specific supplement and its immutable original replay."""
+    original = 'v7-ultimatum-r6-m0236'
+    replacement = original + '-rerun1'
+    paired = 'v7-ultimatum-r6-m0237'
+    archive_path = f'v7/matches/{original}.json'
+    games = [g for g in summary['games'] if 'ultimatum_rerun' in g or g['status'] == 'supplemental']
+    replacements = [item for item in indexed if 'replaces_match_id' in item or item['id'] == replacement]
+    if not games and not replacements:
+        return False
+    if (summary['id'] != 'v7' or len(games) != 1 or games[0]['id'] != 'ultimatum'
+            or games[0]['status'] != 'supplemental' or len(replacements) != 1):
+        raise ValueError('Only one explicit v7 Ultimatum replacement is supported.')
+    game = games[0]
+    provenance = game.get('ultimatum_rerun')
+    expected = {'original_match_id': original, 'archived_match_path': archive_path, 'replacement_match_id': replacement,
+                'paired_match_id': paired, 'original_valid_matches': 239, 'original_invalid_matches': 1,
+                'original_ranked_matches': 238, 'original_ranking_blocks': 119}
+    if not isinstance(provenance, dict) or any(provenance.get(k) != v for k, v in expected.items()):
+        raise ValueError('Original endpoint and rerun references do not match the reviewed match.')
+    try:
+        if datetime.fromisoformat(provenance['completed_at']).utcoffset() is None:
+            raise ValueError('Missing timezone')
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError('The rerun needs its completion timestamp.') from error
+    item = replacements[0]
+    if (item['id'] != replacement or item.get('replaces_match_id') != original
+            or item['path'] != f'v7/matches/{replacement}.json' or item['game'] != 'ultimatum'
+            or item['status'] != 'completed' or item['rounds'] != 6
+            or any(x['id'] == original for x in indexed)):
+        raise ValueError('The effective schedule must use the completed rerun once.')
+    archive = local_path(data, archive_path)
+    if sha256(archive.read_bytes()).hexdigest() != '336878e3b9dddfe940150fd420e5715e35596629f0cc2f41e051e6c77978da93':
+        raise ValueError('The original failed replay archive changed.')
+    archived = read_json(archive)
+    sibling = next((x for x in indexed if x['id'] == paired), {})
+    replay = read_json(local_path(data, item['path']))
+    if (replay.get('replaces_match_id') != original or replay['source_match_id'] != archived['source_match_id'] + ':rerun-1'
+            or item['players'] != archived['players'] or item.get('first_player_id') != 'P1'
+            or sibling.get('players') != item['players'] or sibling.get('first_player_id') != 'P2'
+            or sibling.get('game') != 'ultimatum' or sibling.get('status') != 'completed' or sibling.get('rounds') != 6):
+        raise ValueError('The rerun does not match the archived participants and opposite-role pairing.')
+    actual_requests = 0
+    for rnd in replay['rounds']:
+        proposer, responder = ('P1', 'P2') if rnd['number'] % 2 else ('P2', 'P1')
+        public = rnd['public']
+        offer, decision = public['offer'], public['decision']
+        if (public['proposer_id'], public['responder_id']) != (proposer, responder) or (
+                type(offer) is not int or not 0 <= offer <= 100 or decision not in ('Accept', 'Reject')):
+            raise ValueError('The replay has an invalid Ultimatum action or role order.')
+        payoffs = {proposer: 100 - offer, responder: offer} if decision == 'Accept' else {'P1': 0, 'P2': 0}
+        actions = [(turn['player_id'], turn['role'], turn['action']) for turn in rnd['turns']]
+        if rnd['payoffs'] != payoffs or actions != [(proposer, 'Proposer', offer), (responder, 'Responder', decision)]:
+            raise ValueError('The replay actions and payoffs are inconsistent.')
+        for turn in rnd['turns']:
+            attempts = turn['attempts']
+            actual_requests += len(attempts)
+            accepted = [a for a in attempts if a['accepted']]
+            if (len(accepted) != 1 or not isinstance(turn['raw_text'], str) or not turn['raw_text'].strip()
+                    or accepted[0]['raw_text'] != turn['raw_text'] or accepted[0]['prompt'] != turn['prompt']):
+                raise ValueError('A rerun action lost its accepted model response.')
+    if (type(provenance.get('request_count')) is not int or provenance['request_count'] != actual_requests
+            or not 12 <= actual_requests <= 72 or type(provenance.get('unknown_costs')) is not int
+            or not 0 <= provenance['unknown_costs'] <= actual_requests):
+        raise ValueError('Supplemental request counts do not match the replay.')
+    counts = summary['counts']
+    if (counts.get('planned_matches'), counts.get('valid_matches'), counts.get('invalid_matches'), counts.get('requests'),
+            counts.get('accepted_decisions')) != (840, 840, 0, 11672 + actual_requests, 11525):
+        raise ValueError('Effective match or total recorded request counts changed.')
+    if (game['planned_matches'], game['ranking_matches'], game['ranking_blocks'], game['comparisons']) != (240, 240, 120, 240):
+        raise ValueError('The rerun must close precisely the original two-match role block.')
+    if any(row['ranking_matches'] != row['matches'] for row in game['rows']):
+        raise ValueError('All effective Ultimatum appearances must enter the rerun ranking.')
+    return True
+
+
 def verify(directory):
     root=Path(directory).resolve();data=root/'data'
     for required in ('index.html','assets/app.js','assets/style.css','.nojekyll'):
@@ -65,6 +142,7 @@ def verify(directory):
         model_ids={m['id'] for m in summary['models']}
         index=read_json(local_path(data,summary['matches_path']))
         indexed=index['matches'] if isinstance(index,dict) else index
+        rerun=verify_ultimatum_rerun(data,summary,indexed)
         conditions=Counter();appearances=Counter()
         for item in indexed:
             if item['id'] in match_ids:raise ValueError('Duplicate saved match ID.')
@@ -108,20 +186,20 @@ def verify(directory):
                 if row['ranking_matches']>row['matches']:raise ValueError('Eligible appearances exceed valid appearances.')
                 if row.get('ci_low') is not None and not row['ci_low']<=row['bt']<=row['ci_high']:
                     raise ValueError('Invalid saved score interval.')
-                if game['status']=='provisional' and any(row.get(k) is not None for k in ('ci_low','ci_high','rank_low','rank_high')):
-                    raise ValueError('A provisional score must not acquire an interval.')
+                if game['status'] in ('provisional','supplemental') and any(row.get(k) is not None for k in ('ci_low','ci_high','rank_low','rank_high')):
+                    raise ValueError('Provisional or supplemental scores must not acquire intervals.')
         checked[dataset['id']]={'matches':len(indexed),'models':len(model_ids),'conditions':len(summary['games'])}
         if dataset['id']=='v7':
             if len(model_ids)!=6 or len(indexed)!=840:raise ValueError('The formal scope changed.')
-            required={'beauty_contest':(120,0),'ultimatum':(239,1),'trust':(240,0),'public_goods':(120,0),'push_pull':(120,0)}
+            required={'beauty_contest':(120,0),'ultimatum':(240,0) if rerun else (239,1),'trust':(240,0),'public_goods':(120,0),'push_pull':(120,0)}
             if {(g['id'],g['rounds']) for g in summary['games']}!={(g,6) for g in required} or len(summary['games'])!=5:raise ValueError('Formal game set changed.')
             for game in summary['games']:
                 if (game['valid_matches'],game['invalid_matches'])!=required[game['id']]:raise ValueError('Formal game totals changed.')
             for game in summary['games']:
                 if game['rounds']!=6:raise ValueError('Formal horizon changed.')
-                expected={'beauty_contest':120,'ultimatum':238,'trust':240,'public_goods':120,'push_pull':120}[game['id']]
+                expected={'beauty_contest':120,'ultimatum':240 if rerun else 238,'trust':240,'public_goods':120,'push_pull':120}[game['id']]
                 if game['ranking_matches']!=expected:raise ValueError('Formal eligible match count changed.')
-                if game['id']=='ultimatum' and (game['valid_matches']!=239 or game['status']!='provisional'):
+                if game['id']=='ultimatum' and not rerun and game['status']!='provisional':
                     raise ValueError('The incomplete role-balanced block was hidden.')
     return {'ok':True,'datasets':checked,'files':len(hashes),'bytes':total_bytes,'sha256':hashes,'new_model_requests':0}
 
