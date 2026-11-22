@@ -75,9 +75,9 @@ export function table(headers, rows, className = "data-table") {
   rows.forEach(values => { const tr = element("tr"); values.forEach(value => { const td = element("td"); td.append(value instanceof Node ? value : document.createTextNode(String(value ?? "—"))); tr.append(td); }); body.append(tr); });
   append(node, head, body); wrapper.append(node); return wrapper;
 }
-export function heading(title, description, badge = "Research preview") {
+export function heading(title, description) {
   const wrapper = element("div"); const row = element("div", "page-heading");
-  append(row, element("h1", "", title), element("span", "badge", badge));
+  row.append(element("h1", "", title));
   append(wrapper, row, paragraph(description, "page-description")); return wrapper;
 }
 
@@ -135,7 +135,8 @@ export function roundField(summary, current) {
 }
 export function metadata(current, summary) {
   const context = element("div", "context-line");
-  append(context, element("span", "", `${current.name} · ${current.rounds} rounds`), element("span", "muted", summary.label));
+  context.append(element("span", "", `${current.name} · ${current.rounds} rounds`));
+  if (summary.id !== "v7" && summary.label) context.append(element("span", "muted", summary.label));
   const line = element("div", "meta-line");
   for (const value of [`${current.valid_matches} valid matches`, current.ranking_matches != null && current.ranking_matches !== current.valid_matches ? `${current.ranking_matches} ranked matches` : null,
     current.comparisons != null ? `${current.comparisons} comparisons` : null, current.invalid_matches ? `${current.invalid_matches} invalid` : null]) {
