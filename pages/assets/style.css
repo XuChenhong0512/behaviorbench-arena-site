@@ -174,18 +174,6 @@ button:hover:not(:disabled) {
   line-height:1
 }
 
-.sidebar-caption {
-  font-size:11px;
-  line-height:1.8;
-  color:#bbb5a8;
-  padding:17px 12px;
-  margin-top:auto
-}
-
-.sidebar-caption span {
-  color:#8c887f
-}
-
 .page-shell {
   margin-left:228px;
   min-height:100vh;
@@ -1010,10 +998,6 @@ details[open]>summary {
 
   .navigation a span {
     font-size:18px
-  }
-
-  .sidebar-caption {
-    display:none
   }
 
   .page-shell {

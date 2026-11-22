@@ -21,9 +21,6 @@ async function route() {
     const current = overall || getCondition(summary, state.game, state.rounds);
     if (!current || !summary.models?.length) throw new Error("The saved result summary has no game or model records.");
     state.game = current.id; state.rounds = current.rounds;
-    const sidebarCaption = document.querySelector(".sidebar-caption");
-    const gameCount = new Set(summary.games.map(item => item.id)).size;
-    sidebarCaption.replaceChildren(document.createTextNode(`${gameCount} games · ${summary.models.length} models`), element("br"), element("span", "", "Saved experimental results"));
     setURL({ page: state.page, dataset: state.dataset, game: state.game, rounds: state.rounds }, { replace: true, render: false });
     document.querySelectorAll("[data-page]").forEach(link => {
       const active = link.dataset.page === state.page;
