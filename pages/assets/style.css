@@ -223,11 +223,6 @@ h3 {
   gap:18px
 }
 
-.page-heading .badge {
-  margin-top:4px;
-  white-space:nowrap
-}
-
 .page-description {
   font-size:14px;
   line-height:1.7;
@@ -1040,11 +1035,6 @@ details[open]>summary {
     grid-column:1
   }
 
-  .page-heading .badge {
-    font-size:9px;
-    padding:4px 6px
-  }
-
   .toolbar {
     gap:12px
   }
@@ -1139,10 +1129,6 @@ details[open]>summary {
 
   .page-heading h1 {
     font-size:26px
-  }
-
-  .page-heading .badge {
-    display:none
   }
 
   .navigation a {
