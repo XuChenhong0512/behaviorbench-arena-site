@@ -1,5 +1,5 @@
 import { overallRows } from "./overall.js";
-import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
+import { runtime, formatNumber, element, append, button, paragraph, pretty, model, nameOf, details, field, note, table, heading, setURL, gameControls, roundField, metadata, modelCell } from "./shared.js";
 
 export function renderLeaderboard(summary, current, state) {
   const wrapper = element("section");
@@ -54,14 +54,6 @@ export function renderLeaderboard(summary, current, state) {
   }
   context.textContent = state.method === "bt" ? (current.status === "historical" ? "Higher is better. Saved regularized BT ratings; intervals were not estimated for this historical experiment." : "Higher is better. Saved IPW block-normalized BT ratings. Intervals, when available, are 95% joint asymptotic intervals.") : "Higher is better. Chronological Elo is supplementary and is not corrected for sampling probabilities.";
   append(wrapper, rankingHost, context);
-  const detail = details("Behavior & returns");
-  const rows = [...current.rows].sort((a, b) => (b[state.method] ?? -Infinity) - (a[state.method] ?? -Infinity));
-  const keys = [...new Set(rows.flatMap(item => Object.keys(item.behavior || {})))];
-  if (keys.length) {
-    append(detail, table(["Model", ...keys], rows.map(item => [nameOf(summary, item.model_id), ...keys.map(key => formatNumber(item.behavior?.[key], 2))])),
-      paragraph("Descriptive averages from complete valid matches; not adjusted for opponent mix. These are game returns, not API costs. Trust returned shares omit zero investments.", "caption"));
-  } else detail.append(paragraph("Behavior statistics are not available in this saved bundle.", "caption"));
-  wrapper.append(detail);
   const about = details("About this ranking", paragraph(current.ranking_note || "Each match is ranked by total return across all rounds. Ties are retained. No results from different games or protocols are pooled.", "caption"));
   if (summary.notes) append(about, paragraph(Array.isArray(summary.notes) ? summary.notes.join(" ") : pretty(summary.notes), "caption"));
   wrapper.append(about); return wrapper;
