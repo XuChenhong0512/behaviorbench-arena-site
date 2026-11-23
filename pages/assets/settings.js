@@ -18,7 +18,9 @@ export async function renderSettings(summary, current, state, version) {
     [current.status === "historical" ? "Recorded groups" : "Complete ranking blocks", current.ranking_blocks],
     ["Model settings", generationPolicy === "provider_defaults" ? "Provider defaults" : pretty(generationPolicy)],
   ]));
-  if (current.ranking_note) scope.append(paragraph(current.ranking_note, "caption"));
+  if (current.ranking_note && current.status !== "estimated_asymptotic") {
+    scope.append(paragraph(current.ranking_note, "caption"));
+  }
   const rerun = current.ultimatum_rerun;
   if (rerun?.archived_match_path === "v7/matches/v7-ultimatum-r6-m0236.json") {
     const archive = element("a", "", "Archived original match record (JSON)");
