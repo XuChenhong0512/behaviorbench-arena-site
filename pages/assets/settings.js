@@ -31,15 +31,6 @@ export async function renderSettings(summary, current, state, version) {
   if (current.ranking_note && current.status !== "estimated_asymptotic") {
     scope.append(paragraph(current.ranking_note, "caption"));
   }
-  const rerun = current.ultimatum_rerun;
-  if (rerun?.archived_match_path === "v7/matches/v7-ultimatum-r6-m0236.json") {
-    const archive = element("a", "", "Archived original match record (JSON)");
-    archive.href = `./data/${rerun.archived_match_path}`;
-    scope.append(details("Supplemental Ultimatum rerun", definitions([
-      ["Replacement match", rerun.replacement_match_id], ["Original paired match", rerun.paired_match_id],
-      ["Completed", rerun.completed_at], ["Rerun requests", rerun.request_count],
-    ]), archive));
-  }
   append(grid, rules, scope);
   const sampling = element("section", "setting-section span-all");
   append(sampling, element("h2", "", "Sampling & ranking"));
@@ -66,7 +57,6 @@ export async function renderSettings(summary, current, state, version) {
   const counts = current.role_counts || [];
   if (counts.length) {
     roles.append(table(["Model", "Role", "Planned turns", "Valid-match turns", "Accepted turns"], counts.map(item => [nameOf(summary, item.model_id), roleName(item.role), formatNumber(item.planned_turns, 0), formatNumber(item.valid_turns, 0), formatNumber(item.accepted_turns, 0)])));
-    roles.append(paragraph("Turns are individual round decisions. Planned counts come from the saved schedule; valid-match counts exclude failed matches. Accepted counts can include the preserved partial history of an invalid match.", "caption"));
   } else roles.append(paragraph("Role counts are not available for this experiment.", "caption"));
   grid.append(roles); wrapper.append(grid);
   const sources = details("Sources");
@@ -78,7 +68,7 @@ export async function renderSettings(summary, current, state, version) {
   }
   if (sources.children.length > 1) wrapper.append(sources);
   const examples = (summary.settings.prompt_examples || []).filter(item => item.game === current.id && (item.total_rounds == null && item.rounds == null || Number(item.total_rounds ?? item.rounds) === Number(current.rounds)));
-  const prompts = element("section", "setting-section section-gap"); append(prompts, element("h2", "", "Actual prompts"), paragraph("Complete messages from saved requests, including their real round history and current offer or investment when applicable.", "caption"));
+  const prompts = element("section", "setting-section section-gap"); append(prompts, element("h2", "", "Actual prompts"));
   if (!examples.length) { prompts.append(paragraph("No saved prompt example is available for this condition.", "caption")); wrapper.append(prompts); return wrapper; }
   const promptSelect = select(examples.map((item, index) => ({ value: index, label: `${roleName(item.role)} · ${nameOf(summary, item.model_id)} · round ${item.round}` })), 0, value => loadPrompt(Number(value)), "Saved prompt example");
   const promptHost = element("div"); append(prompts, field("Saved request", promptSelect), promptHost); wrapper.append(prompts);
