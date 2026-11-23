@@ -2,7 +2,7 @@ name: Publish research website
 on:
   push:
     branches: [main]
-    paths: ['pages/**', 'tools/verify_pages_site.py', '.github/workflows/pages.yml']
+    paths: ['pages/**', 'tools/verify_pages_site.py', 'tools/version_pages_assets.py', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - name: Version pages resources
+        run: python tools/version_pages_assets.py pages "$GITHUB_SHA"
       - name: Check browser modules
         run: for file in pages/assets/*.js; do node --check "$file"; done
       - name: Verify the public static snapshot
