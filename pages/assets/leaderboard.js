@@ -1,5 +1,5 @@
 import { overallRows } from "./overall.js";
-import { runtime, formatNumber, element, append, button, paragraph, pretty, model, nameOf, details, field, note, table, heading, setURL, gameControls, roundField, metadata, modelCell } from "./shared.js";
+import { runtime, formatNumber, element, append, button, paragraph, model, nameOf, details, field, note, table, heading, setURL, gameControls, roundField, metadata, modelCell } from "./shared.js";
 
 export function renderLeaderboard(summary, current, state) {
   const wrapper = element("section");
@@ -61,7 +61,8 @@ export function renderLeaderboard(summary, current, state) {
       "Elo uses the original schedule order with the supplemental rerun in its assigned slot.";
   }
   append(wrapper, rankingHost, context);
-  const about = details("About this ranking", paragraph(current.ranking_note || "Each match is ranked by total return across all rounds. Ties are retained. No results from different games or protocols are pooled.", "caption"));
-  if (summary.notes) append(about, paragraph(Array.isArray(summary.notes) ? summary.notes.join(" ") : pretty(summary.notes), "caption"));
-  wrapper.append(about); return wrapper;
+  if (current.ranking_note && current.status !== "estimated_asymptotic") {
+    wrapper.append(details("About this ranking", paragraph(current.ranking_note, "caption")));
+  }
+  return wrapper;
 }
