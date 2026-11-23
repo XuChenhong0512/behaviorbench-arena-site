@@ -70,12 +70,8 @@ export function renderLeaderboard(summary, current, state) {
     return wrapper;
   }
   wrapper.append(rankingHost);
-  if (state.method === "elo") {
-    const context = current.status === "supplemental"
-      ? "Elo uses the original schedule order with the supplemental rerun in its assigned slot. No Elo interval or rank range is estimated."
-      : "Chronological Elo is supplementary and is not corrected for sampling probabilities. No Elo interval or rank range is estimated.";
-    wrapper.append(paragraph(context, "caption"));
-  } else if (current.status === "historical") {
+  if (state.method === "elo") return wrapper;
+  if (current.status === "historical") {
     wrapper.append(paragraph("Saved regularized BT ratings; intervals were not estimated for this historical experiment.", "caption"));
   } else if (!showIntervals && current.status !== "supplemental") {
     wrapper.append(paragraph("Saved IPW block-normalized BT point estimates. No score interval or rank range is available for this condition.", "caption"));
