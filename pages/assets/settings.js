@@ -28,7 +28,8 @@ export async function renderSettings(summary, current, state, version) {
     [current.status === "historical" ? "Recorded groups" : "Complete ranking blocks", current.ranking_blocks],
     ["Model settings", generationPolicy === "provider_defaults" ? "Provider defaults" : pretty(generationPolicy)],
   ]));
-  if (current.ranking_note && current.status !== "estimated_asymptotic") {
+  const isSupplementalUltimatum = current.id === "ultimatum" && current.status === "supplemental";
+  if (current.ranking_note && current.status !== "estimated_asymptotic" && !isSupplementalUltimatum) {
     scope.append(paragraph(current.ranking_note, "caption"));
   }
   append(grid, rules, scope);
