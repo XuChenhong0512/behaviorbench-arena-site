@@ -76,7 +76,6 @@ export async function renderReplay(summary, current, state, version) {
   const match = await readJSON(selected.path); if (version !== runtime.routeVersion) return wrapper;
   const leftPlayer = match.players.find(player => player.model_id === left)?.id;
   const rightPlayer = match.players.find(player => player.model_id === right)?.id;
-  if (match.players.length === 3) wrapper.append(note("This is a three-player game. The third participant is included below and affects the recorded outcome.", "info"));
   if (match.status !== "completed") wrapper.append(note(`Invalid match · excluded from rankings. ${match.failure_reason || "Partial evidence is retained without a final result."}`));
   wrapper.append(playerCards(summary, match, leftPlayer, rightPlayer));
   const nav = element("div", "round-nav"); nav.setAttribute("aria-label", "View rounds");
