@@ -75,12 +75,8 @@ export function table(headers, rows, className = "data-table") {
   rows.forEach(values => { const tr = element("tr"); values.forEach(value => { const td = element("td"); td.append(value instanceof Node ? value : document.createTextNode(String(value ?? "—"))); tr.append(td); }); body.append(tr); });
   append(node, head, body); wrapper.append(node); return wrapper;
 }
-export function heading(title, description) {
-  const wrapper = element("div"); const row = element("div", "page-heading");
-  row.append(element("h1", "", title));
-  wrapper.append(row);
-  if (description) wrapper.append(paragraph(description, "page-description"));
-  return wrapper;
+export function heading(title) {
+  return append(element("div", "page-heading"), element("h1", "", title));
 }
 
 export async function readJSON(path) {

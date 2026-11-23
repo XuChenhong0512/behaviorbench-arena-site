@@ -3,7 +3,7 @@ import { runtime, formatNumber, element, append, button, paragraph, pretty, mode
 
 export function renderLeaderboard(summary, current, state) {
   const wrapper = element("section");
-  append(wrapper, heading("Economic Game Leaderboard", "Compare models by total returns across repeated economic games."), gameControls(summary, current, state));
+  append(wrapper, heading("Economic Game Leaderboard"), gameControls(summary, current, state));
   const isOverall = current.id === "overall";
   const toolbar = element("div", "toolbar"); const methods = element("div", "method-control"); methods.setAttribute("role", "group"); methods.setAttribute("aria-label", "Ranking method");
   for (const method of ["bt", "elo"]) {

@@ -2,8 +2,7 @@ import { runtime, formatNumber, element, append, paragraph, pretty, roleName, na
 
 export async function renderSettings(summary, current, state, version) {
   const wrapper = element("section");
-  append(wrapper, heading("Game Settings", "The rules, model settings, and exact saved prompts behind these results."));
-  append(wrapper, gameControls(summary, current, state), append(element("div", "toolbar"), roundField(summary, current)));
+  append(wrapper, heading("Game Settings"), gameControls(summary, current, state), append(element("div", "toolbar"), roundField(summary, current)));
   const grid = element("div", "settings-grid");
   const rules = element("section", "setting-section"); append(rules, element("h2", "", "Game rules"));
   for (const [label, value] of [["Decisions", current.rules?.rules], ["Payoffs", current.rules?.payoffs], ["Round feedback", current.rules?.feedback]]) {
