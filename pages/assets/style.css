@@ -648,23 +648,14 @@ details[open]>summary {
   font-size:11px
 }
 
-.round-nav {
-  display:flex;
-  flex-wrap:wrap;
-  gap:5px;
-  margin:24px 0 11px
+.replay-inputs h2 {
+  margin:24px 0 14px;
+  font-size:18px
 }
 
-.round-nav button {
-  font-size:11px;
-  padding:5px 11px;
-  min-height:33px;
-  background:transparent
-}
-
-.round-nav button[aria-pressed=true] {
-  background:#454137;
-  border-color:#817969
+.replay-inputs .prompt-messages {
+  max-height:18rem;
+  overflow:auto
 }
 
 .round-heading {
@@ -680,7 +671,8 @@ details[open]>summary {
 
 .round-heading h2 {
   margin:0;
-  font-size:18px
+  font-size:18px;
+  scroll-margin-top:20px
 }
 
 .round-heading span {
@@ -738,12 +730,19 @@ details[open]>summary {
   color:#b7af9e
 }
 
-.bubble-reason {
-  font-size:13px;
-  line-height:1.8;
-  white-space:pre-wrap;
-  margin:12px 0;
-  color:#ded8ca
+.replay-output {
+  margin-top:13px
+}
+
+.replay-output h3 {
+  margin:0;
+  font-size:11px;
+  color:#c0b8a6
+}
+
+.replay-output .raw-text {
+  max-height:20rem;
+  overflow:auto
 }
 
 .bubble-context {
@@ -1139,10 +1138,6 @@ details[open]>summary {
 
   .bubble {
     padding:14px 15px
-  }
-
-  .bubble-reason {
-    font-size:12px
   }
 
   .definition-list {

@@ -30,6 +30,9 @@ async function route() {
     });
     const view = state.page === "settings" ? await renderSettings(summary, current, state, version) : state.page === "replay" ? await renderReplay(summary, current, state, version) : renderLeaderboard(summary, current, state);
     if (version !== runtime.routeVersion) return; main.replaceChildren(view); document.title = `${state.page === "replay" ? "Battle Replay" : state.page === "settings" ? "Game Settings" : "Leaderboard"} · BehaviorBench Arena`;
+    if (state.page === "replay" && state.round !== "all") {
+      document.getElementById(`replay-round-${state.round}`)?.scrollIntoView();
+    }
   } catch (error) {
     if (version !== runtime.routeVersion) return; showError(error);
   } finally { if (version === runtime.routeVersion) main.removeAttribute("aria-busy"); }
