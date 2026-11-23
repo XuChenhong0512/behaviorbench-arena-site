@@ -11,7 +11,13 @@ export async function renderSettings(summary, current, state, version) {
     if (value != null) append(rules, element("h3", "", label), paragraph(Array.isArray(value) ? value.join("\n") : pretty(value), "rules-text"));
   }
   const scope = element("section", "setting-section");
-  append(scope, element("h2", "", "Experiment scope"), definitions([["Players per match", current.players], ["Rounds per match", current.rounds], ["Planned matches", current.planned_matches], ["Valid matches", current.valid_matches], ["Invalid matches", current.invalid_matches], ["Ranked matches", current.ranking_matches], [current.status === "historical" ? "Recorded groups" : "Complete ranking blocks", current.ranking_blocks]]));
+  const generationPolicy = summary.settings.generation_policy;
+  append(scope, element("h2", "", "Experiment scope"), definitions([
+    ["Players per match", current.players], ["Rounds per match", current.rounds], ["Planned matches", current.planned_matches],
+    ["Valid matches", current.valid_matches], ["Invalid matches", current.invalid_matches], ["Ranked matches", current.ranking_matches],
+    [current.status === "historical" ? "Recorded groups" : "Complete ranking blocks", current.ranking_blocks],
+    ["Model settings", generationPolicy === "provider_defaults" ? "Provider defaults" : pretty(generationPolicy)],
+  ]));
   if (current.ranking_note) scope.append(paragraph(current.ranking_note, "caption"));
   const rerun = current.ultimatum_rerun;
   if (rerun?.archived_match_path === "v7/matches/v7-ultimatum-r6-m0236.json") {
@@ -23,18 +29,7 @@ export async function renderSettings(summary, current, state, version) {
     ]), archive));
   }
   append(grid, rules, scope);
-  const generation = element("section", "setting-section");
-  append(generation, element("h2", "", "Model settings"), paragraph(summary.settings.generation_policy === "provider_defaults" ? "Provider defaults. Sampling, reasoning, and output length were not overridden." : pretty(summary.settings.generation_policy)));
-  if (summary.settings.omitted_parameters?.length) generation.append(paragraph(`Omitted request parameters: ${summary.settings.omitted_parameters.join(", ")}.`));
-  const controls = summary.settings.controls;
-  if (controls) append(generation, definitions(Object.entries(controls).map(([key, value]) => [roleName(key), value])));
-  append(generation, definitions([["Prompt version", summary.settings.prompt_version], ["Decision protocol", summary.settings.protocol]]));
-  const response = summary.settings.response || {};
-  if (Object.hasOwn(response, "word_limit")) generation.append(paragraph(response.word_limit === null ? "No word limit was imposed." : `Historical explanation limit: ${response.word_limit} words.`, "caption"));
-  if (response.goal_sentence) generation.append(paragraph(response.goal_sentence));
-  if (response.terminal_field) generation.append(paragraph(`The saved response protocol ends with ${response.terminal_field} followed by the action.`, "caption"));
-  generation.append(paragraph("Models do not share private explanations with opponents. The prompt determines what completed-round information each player sees.", "caption"));
-  const sampling = element("section", "setting-section");
+  const sampling = element("section", "setting-section span-all");
   append(sampling, element("h2", "", "Sampling & ranking"));
   const policy = summary.settings.sampling || {};
   const ranking = summary.settings.ranking || {};
@@ -54,14 +49,7 @@ export async function renderSettings(summary, current, state, version) {
   append(sampling, definitions(samplingRows));
   if (ranking.elo_note) sampling.append(paragraph(ranking.elo_note, "caption"));
   if (ranking.uncertainty) sampling.append(paragraph(ranking.uncertainty, "caption"));
-  const transport = summary.settings.transport;
-  if (transport) sampling.append(details("Request timing & retries", definitions([
-    ["Total request deadline", `${transport.request_deadline_seconds} seconds`],
-    ["Network attempts per format", transport.network_attempts_per_format],
-    ["Format corrections", transport.format_corrections],
-    ["Retry waits", `${(transport.retry_wait_seconds || []).join(" / ")} seconds`]
-  ]), paragraph("A local timeout does not prove that the upstream request was cancelled or free. Original failure evidence is retained.", "caption")));
-  append(grid, generation, sampling);
+  grid.append(sampling);
   const roles = element("section", "setting-section span-all"); append(roles, element("h2", "", "Roles & participation"));
   const counts = current.role_counts || [];
   if (counts.length) {
@@ -69,16 +57,14 @@ export async function renderSettings(summary, current, state, version) {
     roles.append(paragraph("Turns are individual round decisions. Planned counts come from the saved schedule; valid-match counts exclude failed matches. Accepted counts can include the preserved partial history of an invalid match.", "caption"));
   } else roles.append(paragraph("Role counts are not available for this experiment.", "caption"));
   grid.append(roles); wrapper.append(grid);
-  const provenance = details("Sources & experiment notes");
+  const sources = details("Sources");
   for (const source of summary.settings.sources || []) {
     const url = new URL(source.url, location.href);
     if (!["https:", "http:"].includes(url.protocol)) continue;
     const link = element("a", "", source.name); link.href = url.href; link.target = "_blank"; link.rel = "noopener noreferrer";
-    provenance.append(paragraph("")); provenance.lastChild.append(link);
+    sources.append(append(element("p"), link));
   }
-  if (summary.notes) provenance.append(paragraph(Array.isArray(summary.notes) ? summary.notes.join(" ") : pretty(summary.notes), "caption"));
-  provenance.append(paragraph(summary.counts?.billing_complete === false ? "Reported costs are not fully reconciled. Unknown fee records remain preserved in the research ledger." : "Saved experiment records are retained separately for each protocol.", "caption"));
-  wrapper.append(provenance);
+  if (sources.children.length > 1) wrapper.append(sources);
   const examples = (summary.settings.prompt_examples || []).filter(item => item.game === current.id && (item.total_rounds == null && item.rounds == null || Number(item.total_rounds ?? item.rounds) === Number(current.rounds)));
   const prompts = element("section", "setting-section section-gap"); append(prompts, element("h2", "", "Actual prompts"), paragraph("Complete messages from saved requests, including their real round history and current offer or investment when applicable.", "caption"));
   if (!examples.length) { prompts.append(paragraph("No saved prompt example is available for this condition.", "caption")); wrapper.append(prompts); return wrapper; }
