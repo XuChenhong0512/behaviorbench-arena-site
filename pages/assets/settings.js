@@ -2,7 +2,9 @@ import { runtime, formatNumber, element, append, paragraph, pretty, roleName, na
 
 export async function renderSettings(summary, current, state, version) {
   const wrapper = element("section");
-  append(wrapper, heading("Game Settings"), gameControls(summary, current, state), append(element("div", "toolbar"), roundField(summary, current)));
+  append(wrapper, heading("Game Settings"), gameControls(summary, current, state));
+  const rounds = roundField(summary, current);
+  if (rounds) wrapper.append(append(element("div", "toolbar"), rounds));
   const grid = element("div", "settings-grid");
   const rules = element("section", "setting-section"); append(rules, element("h2", "", "Game rules"));
   for (const [label, value] of [["Decisions", current.rules?.rules], ["Payoffs", current.rules?.payoffs], ["Round feedback", current.rules?.feedback]]) {
@@ -91,10 +93,8 @@ export async function renderSettings(summary, current, state, version) {
       const round = match.rounds.find(item => item.number === example.round);
       const turn = round?.turns.find(item => item.player_id === example.player_id);
       if (!turn) throw new Error("The saved prompt reference could not be matched to its decision.");
-      const body = element("div", "section-gap");
-      const full = promptDetails(turn.prompt, `${roleName(turn.role)} · complete prompt`); full.open = true;
-      append(body, paragraph(`${current.name} · ${nameOf(summary, turn.model_id)} · ${roleName(turn.role)} · Round ${round.number}`, "caption"), full);
-      promptHost.replaceChildren(body);
+      const full = promptDetails(turn.prompt); full.open = true;
+      promptHost.replaceChildren(append(element("div", "section-gap"), full));
     } catch (error) { if (requestVersion === promptVersion) promptHost.replaceChildren(note(error.message)); }
   }
   await loadPrompt(0); return wrapper;

@@ -127,8 +127,8 @@ export function gameControls(summary, current, state) {
 }
 export function roundField(summary, current) {
   const choices = summary.games.filter(item => item.id === current.id).map(item => ({ value: item.rounds, label: `${item.rounds} rounds` }));
+  if (choices.length < 2) return null;
   const control = select(choices, current.rounds, rounds => setURL({ rounds, match: null, round: "all" }), "Rounds per match");
-  if (choices.length === 1) control.disabled = true;
   return field("Rounds per match", control);
 }
 export function metadata(current, summary) {

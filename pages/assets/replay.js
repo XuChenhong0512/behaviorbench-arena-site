@@ -72,7 +72,7 @@ export async function renderReplay(summary, current, state, version) {
   setURL({ left, right, match: selected.id }, { replace: true, render: false });
   const matchOptions = candidates.map((item, index) => ({ value: item.id, label: `Match ${index + 1} · ${item.replaces_match_id ? "supplemental rerun" : item.status} · ${item.settled_rounds}/${item.rounds} rounds settled` }));
   const chooser = select(matchOptions, selected.id, match => setURL({ match, round: "all" }), "Saved match");
-  append(wrapper, append(element("div", "replay-header"), field(`Saved match · ${candidates.length} available for this pair`, chooser, "match-selector"), element("span", "badge", `${current.name} · ${current.rounds} rounds`)));
+  append(wrapper, append(element("div", "replay-header"), field(`Saved match · ${candidates.length} available for this pair`, chooser, "match-selector")));
   const match = await readJSON(selected.path); if (version !== runtime.routeVersion) return wrapper;
   const leftPlayer = match.players.find(player => player.model_id === left)?.id;
   const rightPlayer = match.players.find(player => player.model_id === right)?.id;
