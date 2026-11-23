@@ -1,9 +1,14 @@
 import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
 
+export function hasRetryOrFailure(attempts) {
+  return attempts.length > 1 || attempts.some(attempt =>
+    attempt.accepted !== true || attempt.network > 1 || attempt.correction > 0 || attempt.error || attempt.error_kind);
+}
+
 function renderAttemptDetails(turn) {
   const attempts = Array.isArray(turn.attempts) ? turn.attempts : [];
+  if (!hasRetryOrFailure(attempts)) return null;
   const wrapper = details(`Request attempts (${attempts.length})`);
-  if (!attempts.length) wrapper.append(paragraph("No separate attempt evidence is available.", "caption"));
   for (const attempt of attempts) {
     const label = `Network ${attempt.network ?? "—"} · correction ${attempt.correction ?? 0}${attempt.accepted ? " · accepted" : ""}`;
     append(wrapper, element("h3", "", label));
@@ -22,7 +27,7 @@ function bubble(summary, match, turn, leftPlayer, rightPlayer, stage) {
   box.append(paragraph(turn.explanation != null ? turn.explanation : "No explanation was saved for this decision.", "bubble-reason"));
   box.append(element("div", "bubble-action", actionText(match.game, turn.role, turn.action)));
   box.append(details("Full model response", turn.raw_text != null ? element("pre", "raw-text", turn.raw_text) : paragraph("No complete model response was saved.", "caption")));
-  box.append(promptDetails(turn.prompt)); box.append(renderAttemptDetails(turn)); return box;
+  return append(box, promptDetails(turn.prompt), renderAttemptDetails(turn));
 }
 function playerCards(summary, match, leftPlayer, rightPlayer) {
   const cards = element("div", "player-cards");
