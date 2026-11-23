@@ -135,9 +135,10 @@ export function metadata(current, summary) {
   const context = element("div", "context-line");
   context.append(element("span", "", `${current.name} · ${current.rounds} rounds`));
   if (summary.id !== "v7" && summary.label) context.append(element("span", "muted", summary.label));
+  const hideInvalidCount = summary.id === "expansion-v5" && current.id === "trust" && [6, 8].includes(current.rounds);
   const line = element("div", "meta-line");
   for (const value of [`${current.valid_matches} valid matches`, current.ranking_matches != null && current.ranking_matches !== current.valid_matches ? `${current.ranking_matches} ranked matches` : null,
-    current.comparisons != null ? `${current.comparisons} comparisons` : null, current.invalid_matches ? `${current.invalid_matches} invalid` : null]) {
+    current.comparisons != null ? `${current.comparisons} comparisons` : null, current.invalid_matches && !hideInvalidCount ? `${current.invalid_matches} invalid` : null]) {
     if (value) line.append(element("span", "", value));
   }
   return append(element("div"), context, line);
