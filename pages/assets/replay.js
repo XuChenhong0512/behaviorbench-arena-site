@@ -1,4 +1,4 @@
-import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
+import { runtime, formatNumber, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, nameOf, details, field, select, note, heading, readJSON, setURL, gameControls, roundField, promptDetails } from "./shared.js";
 
 export function hasRetryOrFailure(attempts) {
   return attempts.length > 1 || attempts.some(attempt =>
@@ -19,21 +19,68 @@ function renderAttemptDetails(turn) {
   }
   return wrapper;
 }
-function bubble(summary, match, turn, leftPlayer, rightPlayer, stage) {
-  const side = turn.player_id === leftPlayer ? "left" : turn.player_id === rightPlayer ? "right" : "third";
+export function firstAttemptPrompt(turn) {
+  return turn?.attempts?.[0]?.prompt || [];
+}
+
+function playerSide(playerId, leftPlayer, rightPlayer) {
+  return playerId === leftPlayer ? "left" : playerId === rightPlayer ? "right" : "third";
+}
+
+function roundOneInputs(summary, match, players) {
+  const section = element("section", "replay-inputs");
+  const cards = element("div", "replay-lanes");
+  const round = match.rounds.find(item => item.number === 1);
+  for (const player of players) {
+    const turn = round?.turns.find(item => item.player_id === player.id);
+    const name = nameOf(summary, player.model_id);
+    const role = turn ? `${player.id} · ${roleName(turn.role)}` : player.id;
+    const card = element("article", `bubble ${player.side}`);
+    append(card, append(element("div", "bubble-sender"), element("strong", "", name), element("span", "", role)));
+    const messages = firstAttemptPrompt(turn);
+    if (messages.length) {
+      const input = promptDetails(messages, "Input prompt");
+      input.open = true;
+      const scroll = input.querySelector(".prompt-messages");
+      scroll.tabIndex = 0;
+      scroll.setAttribute("role", "region");
+      scroll.setAttribute("aria-label", `${name} round 1 input prompt`);
+      card.append(input);
+    } else {
+      card.append(paragraph("No round 1 input prompt was saved.", "caption"));
+    }
+    cards.append(card);
+  }
+  return append(section, element("h2", "", "Round 1 inputs"), cards);
+}
+
+function modelOutput(turn) {
+  const raw = turn.raw_text ?? turn.attempts?.findLast(attempt => attempt.raw_text != null)?.raw_text;
+  const label = raw != null && turn.raw_text == null ? "Model output (unaccepted)" : "Model output";
+  const content = element("pre", "raw-text", raw ?? "No complete model response was saved.");
+  content.tabIndex = 0;
+  content.setAttribute("role", "region");
+  content.setAttribute("aria-label", label);
+  return append(element("div", "replay-output"), element("h3", "", label), content);
+}
+
+function bubble(summary, match, round, turn, leftPlayer, rightPlayer, stage) {
+  const side = playerSide(turn.player_id, leftPlayer, rightPlayer);
   const box = element("article", `bubble ${side}`); box.setAttribute("aria-label", `${nameOf(summary, turn.model_id)} ${roleName(turn.role)}`);
   append(box, append(element("div", "bubble-sender"), element("strong", "", nameOf(summary, turn.model_id)), element("span", "", `${stage || ""}${turn.player_id} · ${roleName(turn.role)}`)));
   if (turn.observed_input) box.append(paragraph(pretty(turn.observed_input), "bubble-context"));
-  box.append(paragraph(turn.explanation != null ? turn.explanation : "No explanation was saved for this decision.", "bubble-reason"));
+  box.append(modelOutput(turn));
   box.append(element("div", "bubble-action", actionText(match.game, turn.role, turn.action)));
-  box.append(details("Full model response", turn.raw_text != null ? element("pre", "raw-text", turn.raw_text) : paragraph("No complete model response was saved.", "caption")));
-  return append(box, promptDetails(turn.prompt), renderAttemptDetails(turn));
+  if (round.number !== 1) box.append(promptDetails(turn.prompt));
+  else if (turn.prompt?.length && JSON.stringify(turn.prompt) !== JSON.stringify(firstAttemptPrompt(turn))) {
+    box.append(promptDetails(turn.prompt, "Later request prompt"));
+  }
+  return append(box, renderAttemptDetails(turn));
 }
-function playerCards(summary, match, leftPlayer, rightPlayer) {
+function playerCards(summary, match, players) {
   const cards = element("div", "player-cards");
-  const ordered = [...match.players].sort((a, b) => (a.id === leftPlayer ? -2 : a.id === rightPlayer ? -1 : 0) - (b.id === leftPlayer ? -2 : b.id === rightPlayer ? -1 : 0));
-  for (const player of ordered) {
-    const side = player.id === leftPlayer ? "left" : player.id === rightPlayer ? "right" : "third";
+  for (const player of players) {
+    const { side } = player;
     const card = element("div", `player-card ${side}`);
     const outcome = (match.winner_ids || []).includes(player.id) ? ((match.winner_ids || []).length > 1 ? " · Tied highest return" : " · Highest return") : "";
     append(card, element("span", "side-label", `${side === "third" ? "Third participant" : `${side[0].toUpperCase()}${side.slice(1)} model`} · ${player.id}`),
@@ -81,25 +128,23 @@ export async function renderReplay(summary, current, state, version) {
   const match = await readJSON(selected.path); if (version !== runtime.routeVersion) return wrapper;
   const leftPlayer = match.players.find(player => player.model_id === left)?.id;
   const rightPlayer = match.players.find(player => player.model_id === right)?.id;
+  const position = id => id === leftPlayer ? 0 : id === rightPlayer ? 1 : 2;
+  const players = [...match.players].sort((a, b) => position(a.id) - position(b.id))
+    .map(player => ({ ...player, side: playerSide(player.id, leftPlayer, rightPlayer) }));
   if (match.status !== "completed") wrapper.append(note(`Invalid match · excluded from rankings. ${match.failure_reason || "Partial evidence is retained without a final result."}`));
-  wrapper.append(playerCards(summary, match, leftPlayer, rightPlayer));
-  const nav = element("div", "round-nav"); nav.setAttribute("aria-label", "View rounds");
-  const validRound = state.round === "all" || match.rounds.some(item => String(item.number) === state.round) ? state.round : "all";
-  for (const value of ["all", ...match.rounds.map(item => String(item.number))]) {
-    const node = button(value === "all" ? "All rounds" : `Round ${value}`, () => setURL({ round: value })); node.setAttribute("aria-pressed", String(validRound === value)); nav.append(node);
-  }
-  wrapper.append(nav);
+  wrapper.append(playerCards(summary, match, players), roundOneInputs(summary, match, players));
   const sequential = ["ultimatum", "trust"].includes(match.game);
   if (!match.rounds.length) wrapper.append(element("div", "empty-state", "No round decisions were saved for this match."));
   for (const round of match.rounds) {
-    if (validRound !== "all" && String(round.number) !== validRound) continue;
     const section = element("section");
-    append(section, append(element("div", "round-heading"), element("h2", "", `Round ${round.number} / ${selected.rounds}`), element("span", "", sequential ? "Sequential decisions" : "Simultaneous choices · revealed together")));
+    const title = element("h2", "", `Round ${round.number} / ${selected.rounds}`);
+    title.id = `replay-round-${round.number}`;
+    append(section, append(element("div", "round-heading"), title, element("span", "", sequential ? "Sequential decisions" : "Simultaneous choices · revealed together")));
     if (sequential) {
-      round.turns.forEach((turn, index) => section.append(append(element("div", "replay-lanes"), bubble(summary, match, turn, leftPlayer, rightPlayer, `${index + 1} · `))));
+      round.turns.forEach((turn, index) => section.append(append(element("div", "replay-lanes"), bubble(summary, match, round, turn, leftPlayer, rightPlayer, `${index + 1} · `))));
     } else {
       const lanes = element("div", "replay-lanes");
-      [...round.turns].sort((a, b) => (a.player_id === leftPlayer ? -2 : a.player_id === rightPlayer ? -1 : 0) - (b.player_id === leftPlayer ? -2 : b.player_id === rightPlayer ? -1 : 0)).forEach(turn => lanes.append(bubble(summary, match, turn, leftPlayer, rightPlayer)));
+      [...round.turns].sort((a, b) => position(a.player_id) - position(b.player_id)).forEach(turn => lanes.append(bubble(summary, match, round, turn, leftPlayer, rightPlayer)));
       section.append(lanes);
     }
     section.append(settlement(summary, match, round)); wrapper.append(section);
