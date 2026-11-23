@@ -38,6 +38,14 @@ def local_path(root,relative):
     return path
 
 
+def frontend_path(root, relative):
+    """Resolve a frontend asset with an optional release query."""
+    url = urlsplit(relative)
+    if url.query and not re.fullmatch(r"v=[0-9a-f]{1,40}", url.query):
+        raise ValueError(f"Invalid asset version: {relative}")
+    return local_path(root, url._replace(query="").geturl())
+
+
 def verify_ultimatum_rerun(data, summary, indexed):
     """Require one specific supplement and its immutable original replay."""
     original = 'v7-ultimatum-r6-m0236'
@@ -118,9 +126,11 @@ def verify(directory):
     root=Path(directory).resolve();data=root/'data'
     for required in ('index.html','assets/app.js','assets/style.css','.nojekyll'):
         local_path(root,required)
+    for reference in re.findall(r'''\b(?:src|href)\s*=\s*["'](\./assets/[^"']+)["']''', (root/'index.html').read_text(encoding='utf-8')):
+        frontend_path(root, reference)
     for script in (root/'assets').glob('*.js'):
         for dependency in re.findall(r'''from\s+["'](\.[^"']+)["']''',script.read_text()):
-            local_path(root,str((script.parent/dependency).relative_to(root)))
+            frontend_path(root,str((script.parent/dependency).relative_to(root)))
     total_bytes=0;hashes={}
     for file in sorted(root.rglob('*')):
         if file.is_symlink():raise ValueError('Publish real static files, not symlinks.')
