@@ -80,9 +80,6 @@ export async function renderReplay(summary, current, state, version) {
   if (match.players.length === 3) wrapper.append(note("This is a three-player game. The third participant is included below and affects the recorded outcome.", "info"));
   if (match.status !== "completed") wrapper.append(note(`Invalid match · excluded from rankings. ${match.failure_reason || "Partial evidence is retained without a final result."}`));
   wrapper.append(playerCards(summary, match, leftPlayer, rightPlayer));
-  const matchDetails = details("Match details", paragraph(match.id, "caption"), paragraph(`Status: ${match.status}. ${current.ranking_note || ""}`, "caption"));
-  if (match.replaces_match_id) matchDetails.append(paragraph(`Supplemental rerun of ${match.replaces_match_id}.`, "caption"));
-  append(wrapper, matchDetails);
   const nav = element("div", "round-nav"); nav.setAttribute("aria-label", "View rounds");
   const validRound = state.round === "all" || match.rounds.some(item => String(item.number) === state.round) ? state.round : "all";
   for (const value of ["all", ...match.rounds.map(item => String(item.number))]) {
