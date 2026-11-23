@@ -78,7 +78,9 @@ export function table(headers, rows, className = "data-table") {
 export function heading(title, description) {
   const wrapper = element("div"); const row = element("div", "page-heading");
   row.append(element("h1", "", title));
-  append(wrapper, row, paragraph(description, "page-description")); return wrapper;
+  wrapper.append(row);
+  if (description) wrapper.append(paragraph(description, "page-description"));
+  return wrapper;
 }
 
 export async function readJSON(path) {

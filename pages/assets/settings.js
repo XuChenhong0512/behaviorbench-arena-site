@@ -1,12 +1,8 @@
-import { runtime, formatNumber, getCondition, matchCandidates, actionText, element, append, button, paragraph, pretty, roleName, model, nameOf, details, field, select, note, table, heading, readJSON, stateFromURL, setURL, gameControls, roundField, metadata, modelCell, promptDetails, definitions } from "./shared.js";
+import { runtime, formatNumber, element, append, paragraph, pretty, roleName, nameOf, details, field, select, note, table, heading, readJSON, gameControls, roundField, promptDetails, definitions } from "./shared.js";
 
 export async function renderSettings(summary, current, state, version) {
   const wrapper = element("section");
   append(wrapper, heading("Game Settings", "The rules, model settings, and exact saved prompts behind these results."));
-  const experiment = select(runtime.manifest.datasets.map(item => ({ value: item.id, label: item.label })), state.dataset, dataset => {
-    runtime.searchTerm = ""; setURL({ dataset, game: null, rounds: null, left: null, right: null, match: null, round: "all" });
-  }, "Experiment");
-  append(wrapper, append(element("div", "toolbar"), field("Experiment", experiment)));
   append(wrapper, gameControls(summary, current, state), append(element("div", "toolbar"), roundField(summary, current)));
   const grid = element("div", "settings-grid");
   const rules = element("section", "setting-section"); append(rules, element("h2", "", "Game rules"));
@@ -65,23 +61,6 @@ export async function renderSettings(summary, current, state, version) {
     ["Retry waits", `${(transport.retry_wait_seconds || []).join(" / ")} seconds`]
   ]), paragraph("A local timeout does not prove that the upstream request was cancelled or free. Original failure evidence is retained.", "caption")));
   append(grid, generation, sampling);
-  const identifiers = element("section", "setting-section span-all");
-  const requestCounts = new Map((summary.settings.request_counts || []).map(item => [item.model_id, item.requests]));
-  append(identifiers, details("Model IDs & request counts", table(["Model", "API model ID", "Saved requests"], summary.models.map(item => [item.name, item.id, formatNumber(requestCounts.get(item.id), 0)])), paragraph("Request counts include retries and corrections; they are not counts of valid game turns.", "caption")));
-  const routing = summary.settings.routing;
-  if (routing && Array.isArray(routing.models)) {
-    const routingDetails = details("Request / response controls");
-    append(routingDetails, paragraph("Fixed API model IDs were used with no cross-model fallback. The provider controls below are copied from saved request payloads.", "caption"));
-    routingDetails.append(table(["Model", "Provider fallback", "Require parameters", "Max input USD / M tokens", "Max output USD / M tokens", "Max request USD", "Observed variants"], routing.models.map(item => [
-      nameOf(summary, item.model_id), typeof item.allow_fallbacks === "boolean" ? String(item.allow_fallbacks) : "Not recorded",
-      typeof item.require_parameters === "boolean" ? String(item.require_parameters) : "Not recorded",
-      formatNumber(item.max_price?.prompt, 2), formatNumber(item.max_price?.completion, 2), formatNumber(item.max_price?.request, 2), formatNumber(item.observed_variants, 0)
-    ])));
-    routingDetails.append(paragraph("These are public routing price ceilings, not actual charges or private billing records.", "caption"));
-    routingDetails.append(definitions([["Preserve original response text", response.preserve_original_text == null ? "Not recorded" : String(response.preserve_original_text)], ["Action field", response.terminal_field || "See the saved prompt"], ["Explanation word limit", Object.hasOwn(response, "word_limit") ? response.word_limit === null ? "None" : response.word_limit : "Not recorded"]]));
-    identifiers.append(routingDetails);
-  }
-  grid.append(identifiers);
   const roles = element("section", "setting-section span-all"); append(roles, element("h2", "", "Roles & participation"));
   const counts = current.role_counts || [];
   if (counts.length) {

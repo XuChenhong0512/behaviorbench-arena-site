@@ -49,7 +49,7 @@ function settlement(summary, match, round) {
 }
 export async function renderReplay(summary, current, state, version) {
   const wrapper = element("section");
-  append(wrapper, heading("Battle Replay", "Read the decisions, explanations, and public outcomes from a real saved match."), gameControls(summary, current, state));
+  append(wrapper, heading("Battle Replay"), gameControls(summary, current, state));
   const index = await readJSON(summary.matches_path); if (version !== runtime.routeVersion) return wrapper;
   const all = index.matches || []; const ids = current.rows.map(row => row.model_id);
   const left = ids.includes(state.left) ? state.left : ids[0];
