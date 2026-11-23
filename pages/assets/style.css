@@ -712,6 +712,10 @@ details[open]>summary {
   border-radius:9px
 }
 
+.replay-lanes.sequential > .bubble {
+  grid-row:1
+}
+
 .bubble-sender {
   display:flex;
   align-items:baseline;
@@ -1038,6 +1042,15 @@ details[open]>summary {
     grid-column:1/-1;
     justify-self:start;
     min-width:155px
+  }
+
+  .replay-lanes.sequential {
+    grid-template-columns:minmax(0,1fr)
+  }
+
+  .replay-lanes.sequential > .bubble {
+    grid-column:1;
+    grid-row:auto
   }
 
   .match-selector {

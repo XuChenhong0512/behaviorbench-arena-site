@@ -110,7 +110,9 @@ export async function renderReplay(summary, current, state, version) {
   const controls = element("div", "replay-controls");
   const leftControl = select(options, left, value => setURL({ left: value, right: value === right ? ids.find(id => id !== value) : right, match: null, round: "all" }), "Left model");
   const rightControl = select(options.filter(item => item.value !== left), right, value => setURL({ left, right: value, match: null, round: "all" }), "Right model");
-  const candidates = matchCandidates(all, { game: current.id, rounds: current.rounds, left, right, status: state.status });
+  const hasInvalidMatches = all.some(match => match.game === current.id && match.rounds === current.rounds && match.status === "invalid");
+  const status = hasInvalidMatches ? state.status : "completed";
+  const candidates = matchCandidates(all, { game: current.id, rounds: current.rounds, left, right, status });
   const selected = candidates.find(item => item.id === state.match) || candidates[Math.floor(Math.random() * candidates.length)];
   const random = button("↻  Random match", () => {
     const other = candidates.filter(item => item.id !== selected?.id); const pool = other.length ? other : candidates;
@@ -118,10 +120,23 @@ export async function renderReplay(summary, current, state, version) {
   }, "primary-button"); random.disabled = candidates.length < 2;
   append(controls, field("Left model", leftControl), field("Right model", rightControl), random); wrapper.append(controls);
   const filters = element("div", "toolbar");
-  append(filters, roundField(summary, current), field("Match status", select([{ value: "completed", label: "Completed" }, { value: "invalid", label: "Invalid" }, { value: "all", label: "All saved matches" }], state.status, value => setURL({ status: value, match: null, round: "all" }), "Match status")));
-  wrapper.append(filters);
-  if (!selected) { wrapper.append(element("div", "empty-state", "No saved match contains this pair under these filters. Try another pair or match status.")); return wrapper; }
-  setURL({ left, right, match: selected.id }, { replace: true, render: false });
+  append(filters, roundField(summary, current));
+  if (hasInvalidMatches) {
+    const statusOptions = [
+      { value: "completed", label: "Completed" },
+      { value: "invalid", label: "Invalid" },
+      { value: "all", label: "All saved matches" }
+    ];
+    const statusControl = select(statusOptions, status, value => setURL({ status: value, match: null, round: "all" }), "Match status");
+    filters.append(field("Match status", statusControl));
+  }
+  if (filters.childElementCount) wrapper.append(filters);
+  if (!selected) {
+    const suggestion = hasInvalidMatches ? "Try another pair or match status." : "Try another pair.";
+    wrapper.append(element("div", "empty-state", `No saved match contains this pair under these filters. ${suggestion}`));
+    return wrapper;
+  }
+  setURL({ left, right, match: selected.id, status }, { replace: true, render: false });
   const matchOptions = candidates.map((item, index) => ({ value: item.id, label: `Match ${index + 1} · ${item.replaces_match_id ? "supplemental rerun" : item.status} · ${item.settled_rounds}/${item.rounds} rounds settled` }));
   const chooser = select(matchOptions, selected.id, match => setURL({ match, round: "all" }), "Saved match");
   append(wrapper, append(element("div", "replay-header"), field(`Saved match · ${candidates.length} available for this pair`, chooser, "match-selector")));
@@ -140,13 +155,13 @@ export async function renderReplay(summary, current, state, version) {
     const title = element("h2", "", `Round ${round.number} / ${selected.rounds}`);
     title.id = `replay-round-${round.number}`;
     append(section, append(element("div", "round-heading"), title, element("span", "", sequential ? "Sequential decisions" : "Simultaneous choices · revealed together")));
-    if (sequential) {
-      round.turns.forEach((turn, index) => section.append(append(element("div", "replay-lanes"), bubble(summary, match, round, turn, leftPlayer, rightPlayer, `${index + 1} · `))));
-    } else {
-      const lanes = element("div", "replay-lanes");
-      [...round.turns].sort((a, b) => position(a.player_id) - position(b.player_id)).forEach(turn => lanes.append(bubble(summary, match, round, turn, leftPlayer, rightPlayer)));
-      section.append(lanes);
-    }
+    const lanes = element("div", sequential ? "replay-lanes sequential" : "replay-lanes");
+    const turns = sequential ? round.turns : [...round.turns].sort((a, b) => position(a.player_id) - position(b.player_id));
+    turns.forEach((turn, index) => {
+      const stage = sequential ? `${index + 1} · ` : "";
+      lanes.append(bubble(summary, match, round, turn, leftPlayer, rightPlayer, stage));
+    });
+    section.append(lanes);
     section.append(settlement(summary, match, round)); wrapper.append(section);
   }
   return wrapper;

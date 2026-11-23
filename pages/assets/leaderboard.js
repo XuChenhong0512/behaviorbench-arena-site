@@ -1,10 +1,17 @@
 import { overallRows } from "./overall.js";
 import { runtime, formatNumber, element, append, button, paragraph, model, nameOf, details, field, note, table, heading, setURL, gameControls, roundField, metadata, modelCell } from "./shared.js";
 
+// Keep the table structure tied to the complete condition, not the search result.
+export function hasBTIntervals(current, method) {
+  return method === "bt" && current.id !== "overall" && (current.rows || []).some(item =>
+    Number.isFinite(item.bt) && Number.isFinite(item.ci_low) && Number.isFinite(item.ci_high));
+}
+
 export function renderLeaderboard(summary, current, state) {
   const wrapper = element("section");
   append(wrapper, heading("Economic Game Leaderboard"), gameControls(summary, current, state));
   const isOverall = current.id === "overall";
+  const showIntervals = hasBTIntervals(current, state.method);
   const toolbar = element("div", "toolbar"); const methods = element("div", "method-control"); methods.setAttribute("role", "group"); methods.setAttribute("aria-label", "Ranking method");
   for (const method of ["bt", "elo"]) {
     const node = button(method === "bt" ? "BT" : "Elo", () => setURL({ method })); node.setAttribute("aria-pressed", String(state.method === method)); methods.append(node);
@@ -34,14 +41,22 @@ export function renderLeaderboard(summary, current, state) {
     const filtered = rows.filter(item => `${nameOf(summary, item.model_id)} ${model(summary, item.model_id).provider}`.toLowerCase().includes(runtime.searchTerm.toLowerCase()));
     if (!filtered.length) { rankingHost.append(element("div", "empty-state", "No saved models match this search.")); return; }
     const cells = filtered.map(item => {
-      const uncertainty = element("div", "uncertainty");
-      if (state.method === "bt" && Number.isFinite(item.ci_low) && Number.isFinite(item.ci_high)) {
-        append(uncertainty, element("div", "numeric", `${formatNumber(item.ci_low)}–${formatNumber(item.ci_high)}`), element("div", "", item.rank_low != null ? `Rank ${item.rank_low}–${item.rank_high}` : "95% interval"));
-      } else uncertainty.textContent = current.status === "provisional" && state.method === "bt" ? "Provisional · no interval" : "Not estimated";
-      return [element("span", "rank", rows.indexOf(item) + 1), modelCell(summary, item.model_id), element("span", "score", formatNumber(item[state.method])), uncertainty,
-        element("span", "numeric", formatNumber(item.ranking_matches ?? item.matches, 0))];
+      const cells = [element("span", "rank", rows.indexOf(item) + 1), modelCell(summary, item.model_id), element("span", "score", formatNumber(item[state.method]))];
+      if (showIntervals) {
+        const uncertainty = element("div", "uncertainty");
+        if (Number.isFinite(item.ci_low) && Number.isFinite(item.ci_high)) {
+          uncertainty.append(element("div", "numeric", `Score ${formatNumber(item.ci_low)}–${formatNumber(item.ci_high)}`));
+          if (Number.isFinite(item.rank_low) && Number.isFinite(item.rank_high)) {
+            uncertainty.append(element("div", "", `Rank range ${item.rank_low}–${item.rank_high}`));
+          }
+        } else uncertainty.textContent = current.status === "provisional" ? "Provisional · no interval" : "Not estimated";
+        cells.push(uncertainty);
+      }
+      cells.push(element("span", "numeric", formatNumber(item.ranking_matches ?? item.matches, 0)));
+      return cells;
     });
-    const node = table(["RANK", "MODEL", state.method === "bt" ? "BT RATING ↓" : "ELO RATING ↓", "UNCERTAINTY", "MATCHES"], cells, "ranking-table");
+    const headers = ["RANK", "MODEL", state.method === "bt" ? "BT RATING ↓" : "ELO RATING ↓", ...(showIntervals ? ["95% BT INTERVAL"] : []), "MATCHES"];
+    const node = table(headers, cells, "ranking-table");
     node.querySelector("table").setAttribute("aria-label", `${current.name} ${state.method.toUpperCase()} rankings`); rankingHost.append(node);
   };
   search.addEventListener("input", () => { runtime.searchTerm = search.value; drawTable(); }); drawTable();
@@ -55,10 +70,10 @@ export function renderLeaderboard(summary, current, state) {
     return wrapper;
   }
   const context = element("p", "caption");
-  context.textContent = state.method === "bt" ? (current.status === "historical" ? "Saved regularized BT ratings; intervals were not estimated for this historical experiment." : "Saved IPW block-normalized BT ratings. Intervals, when available, are 95% joint asymptotic intervals.") : "Chronological Elo is supplementary and is not corrected for sampling probabilities.";
+  context.textContent = state.method === "bt" ? (current.status === "historical" ? "Saved regularized BT ratings; intervals were not estimated for this historical experiment." : showIntervals ? "Saved IPW block-normalized BT ratings. Rank ranges use joint comparisons between models." : "Saved IPW block-normalized BT point estimates. No score interval or rank range is available for this condition.") : "Chronological Elo is supplementary and is not corrected for sampling probabilities. No Elo interval or rank range is estimated.";
   if (current.status === "supplemental") {
     context.textContent = state.method === "bt" ? "IPW BT ratings include the supplemental rerun. No interval is estimated for this analysis." :
-      "Elo uses the original schedule order with the supplemental rerun in its assigned slot.";
+      "Elo uses the original schedule order with the supplemental rerun in its assigned slot. No Elo interval or rank range is estimated.";
   }
   append(wrapper, rankingHost, context);
   if (current.ranking_note && current.status !== "estimated_asymptotic") {
