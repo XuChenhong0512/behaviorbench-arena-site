@@ -14,7 +14,8 @@ async function route() {
   main.replaceChildren(element("div", "loading-state", "Loading saved results…"));
   try {
     const state = stateFromURL();
-    const dataset = runtime.manifest.datasets.find(item => item.id === state.dataset) || runtime.manifest.datasets.find(item => item.id === runtime.manifest.default_dataset) || runtime.manifest.datasets[0];
+    const requestedDataset = state.page === "settings" ? runtime.manifest.default_dataset : state.dataset;
+    const dataset = runtime.manifest.datasets.find(item => item.id === requestedDataset) || runtime.manifest.datasets.find(item => item.id === runtime.manifest.default_dataset) || runtime.manifest.datasets[0];
     if (!dataset) throw new Error("No saved result dataset is available."); state.dataset = dataset.id;
     const summary = await readJSON(dataset.path); if (version !== runtime.routeVersion) return;
     const overall = state.page === "leaderboard" && (!state.game || state.game === "overall") ? overallCondition(summary) : null;
