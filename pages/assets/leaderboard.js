@@ -69,14 +69,18 @@ export function renderLeaderboard(summary, current, state) {
       paragraph("This equal-weight index is not a new pooled BT fit. Compare the individual games and their uncertainty before interpreting small differences. Historical experiments with different round conditions are kept separate.", "caption")));
     return wrapper;
   }
-  const context = element("p", "caption");
-  context.textContent = state.method === "bt" ? (current.status === "historical" ? "Saved regularized BT ratings; intervals were not estimated for this historical experiment." : showIntervals ? "Saved IPW block-normalized BT ratings. Rank ranges use joint comparisons between models." : "Saved IPW block-normalized BT point estimates. No score interval or rank range is available for this condition.") : "Chronological Elo is supplementary and is not corrected for sampling probabilities. No Elo interval or rank range is estimated.";
-  if (current.status === "supplemental") {
-    context.textContent = state.method === "bt" ? "IPW BT ratings include the supplemental rerun. No interval is estimated for this analysis." :
-      "Elo uses the original schedule order with the supplemental rerun in its assigned slot. No Elo interval or rank range is estimated.";
+  wrapper.append(rankingHost);
+  if (state.method === "elo") {
+    const context = current.status === "supplemental"
+      ? "Elo uses the original schedule order with the supplemental rerun in its assigned slot. No Elo interval or rank range is estimated."
+      : "Chronological Elo is supplementary and is not corrected for sampling probabilities. No Elo interval or rank range is estimated.";
+    wrapper.append(paragraph(context, "caption"));
+  } else if (current.status === "historical") {
+    wrapper.append(paragraph("Saved regularized BT ratings; intervals were not estimated for this historical experiment.", "caption"));
+  } else if (!showIntervals && current.status !== "supplemental") {
+    wrapper.append(paragraph("Saved IPW block-normalized BT point estimates. No score interval or rank range is available for this condition.", "caption"));
   }
-  append(wrapper, rankingHost, context);
-  if (current.ranking_note && current.status !== "estimated_asymptotic") {
+  if (current.id !== "ultimatum" && current.ranking_note && current.status !== "estimated_asymptotic") {
     wrapper.append(details("About this ranking", paragraph(current.ranking_note, "caption")));
   }
   return wrapper;
