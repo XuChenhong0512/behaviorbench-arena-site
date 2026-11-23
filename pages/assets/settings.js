@@ -1,5 +1,10 @@
 import { runtime, formatNumber, element, append, paragraph, pretty, roleName, nameOf, details, field, select, note, table, heading, readJSON, gameControls, roundField, promptDetails, definitions } from "./shared.js";
 
+const sequentialRoundFeedback = {
+  ultimatum: "Before choosing again, both models see the completed round's roles, offer, acceptance or rejection, and each player's round and cumulative earnings.",
+  trust: "Before choosing again, both models see the completed round's roles, investment, tripled amount, amount returned, and each player's round and cumulative earnings.",
+};
+
 export async function renderSettings(summary, current, state, version) {
   const wrapper = element("section");
   append(wrapper, heading("Game Settings"), gameControls(summary, current, state));
@@ -7,7 +12,12 @@ export async function renderSettings(summary, current, state, version) {
   if (rounds) wrapper.append(append(element("div", "toolbar"), rounds));
   const grid = element("div", "settings-grid");
   const rules = element("section", "setting-section"); append(rules, element("h2", "", "Game rules"));
-  for (const [label, value] of [["Decisions", current.rules?.rules], ["Payoffs", current.rules?.payoffs], ["Round feedback", current.rules?.feedback]]) {
+  const savedRules = current.rules;
+  const feedback = sequentialRoundFeedback[current.id];
+  const ruleSections = [["Decisions", savedRules?.rules], ["Payoffs", savedRules?.payoffs]];
+  if (feedback) ruleSections.push(["Role rotation", savedRules?.feedback]);
+  ruleSections.push(["Round feedback", feedback ?? savedRules?.feedback]);
+  for (const [label, value] of ruleSections) {
     if (value != null) append(rules, element("h3", "", label), paragraph(Array.isArray(value) ? value.join("\n") : pretty(value), "rules-text"));
   }
   const scope = element("section", "setting-section");
