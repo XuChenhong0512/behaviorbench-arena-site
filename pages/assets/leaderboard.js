@@ -11,7 +11,7 @@ export function renderLeaderboard(summary, current, state) {
   }
   const search = element("input"); search.type = "search"; search.placeholder = "Search models or providers…"; search.value = runtime.searchTerm;
   append(toolbar, isOverall ? null : roundField(summary, current), field("Ranking method", methods), field("Find a model", search, "search-field"));
-  append(wrapper, toolbar, isOverall ? paragraph("Overall · Five games · Equal game weights", "context-line") : metadata(current, summary));
+  append(wrapper, toolbar, isOverall ? null : metadata(current, summary));
   if (current.status === "provisional") wrapper.append(note(current.ranking_note || "Provisional point estimates. A role-balanced match block is incomplete, so statistical intervals are unavailable."));
   const rankingHost = element("div"); const context = element("p", "caption");
   const drawTable = () => {
